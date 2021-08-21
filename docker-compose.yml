@@ -22,6 +22,11 @@ services:
         build: .
         ports:
             - "8080:8080"
+        environment:
+            - POSTGRES_USER=${POSTGRES_USER}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            - POSTGRES_DB=shopify-challenge-db
+            - PGADMIN_LISTEN_PORT=5432
         depends_on:
             db:
                 condition: service_healthy
