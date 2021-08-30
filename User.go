@@ -26,7 +26,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := SearchForExistingUser(u.Username, db)
+	users, err := SearchForExistingUser(u.Username)
 	if err != nil {
 		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
@@ -42,7 +42,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	hash, _ := HashPassword(u.Password)
 	u.Password = hash
 
-	db.Create(&u)
+	DB.Create(&u)
 
 	w.Write([]byte("User created"))
 	w.WriteHeader(201)
@@ -57,7 +57,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := SearchForExistingUser(u.Username, db)
+	users, err := SearchForExistingUser(u.Username)
 	if err != nil {
 		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
@@ -96,6 +96,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
+		Path:     "/",
 		Value:    tokenString,
 		HttpOnly: true,
 		Expires:  expirationTime,
@@ -150,6 +151,7 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
+		Path:     "/",
 		Value:    tokenString,
 		HttpOnly: true,
 		Expires:  expirationTime,
@@ -196,6 +198,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
+		Path:     "/",
 		Value:    "",
 		HttpOnly: true,
 		Expires:  expirationTime,

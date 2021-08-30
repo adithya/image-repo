@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"net/http"
 )
 
@@ -36,9 +35,9 @@ func ValidateAndDecodeRequestBody(r *http.Request) (*User, error) {
 	return &user, nil
 }
 
-func SearchForExistingUser(username string, db *gorm.DB) (*[]User, error) {
+func SearchForExistingUser(username string) (*[]User, error) {
 	var users []User
-	db.Where(&User{Username: username}).Find(&users)
+	DB.Where(&User{Username: username}).Find(&users)
 
 	if len(users) > 1 {
 		return nil, fmt.Errorf("Multiple users returned")
