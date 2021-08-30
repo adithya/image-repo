@@ -13,6 +13,7 @@ import (
 )
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
+var db *gorm.DB
 
 type User struct {
 	ID       uint   `gorm:"primaryKey"` // make sure this gets generated automatically
