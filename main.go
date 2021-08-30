@@ -76,11 +76,16 @@ func main() {
 
 	mux.HandleFunc("/welcome", Welcome)
 
-	// Upload photo
-	// Change photo privacy
-	// delete photo
-	// get public gallery
-	// get complete gallery (including private photos)
+	photoService := http.NewServeMux()
+	photoService.HandleFunc("/upload", Upload)
+	photoService.HandleFunc("/edit/permissions", ChangePermissions)
+	photoService.HandleFunc("/delete", Delete)
+	mux.Handle("/photo/", http.StripPrefix("/photo", photoService))
+
+	feedService := http.NewServeMux()
+	feedService.HandleFunc("/public", GetFeed)  // public photos from all users
+	feedService.HandleFunc("/home", GetGallery) // all photos uploaded by user (public + private)
+	mux.Handle("/feed/", http.StripPrefix("/feed", feedService))
 
 	s := http.Server{
 		Addr:         ":8080",
