@@ -60,6 +60,7 @@ func main() {
 
 	// Migrate the schema
 	db.AutoMigrate(&User{})
+	db.AutoMigrate(&Photo{})
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/GetVersion", func(w http.ResponseWriter, r *http.Request) {
