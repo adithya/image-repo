@@ -1,8 +1,11 @@
 package main
 
 import (
+	"cloud.google.com/go/storage"
+	"context"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"google.golang.org/api/option"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"net/http"
@@ -11,7 +14,15 @@ import (
 )
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
+
+// DB is the global connection pool for the database connection
 var DB *gorm.DB
+
+// Client is the global connection pool for the GCP SDK
+var Client *storage.Client
+
+// GCPProjectID is the project ID withing GCP, should be passed wherever a project ID is needed as an argument
+const GCPProjectID = "shopify-challenge-image-repo"
 
 func Welcome(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("token")
@@ -62,6 +73,13 @@ func main() {
 	// Migrate the schema
 	DB.AutoMigrate(&User{})
 	DB.AutoMigrate(&Photo{})
+
+	// Connect to Google Cloud SDK
+	ctx := context.Background()
+	Client, err = storage.NewClient(ctx, option.WithCredentialsFile("gcp-service-acc-creds.json"))
+	if err != nil {
+		panic(err.Error())
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/GetVersion", func(w http.ResponseWriter, r *http.Request) {

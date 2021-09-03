@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
+	"log"
 	"net/http"
 	"time"
 )
@@ -12,7 +14,7 @@ type Claims struct {
 }
 
 type User struct {
-	ID       uint   `gorm:"primaryKey"` // make sure this gets generated automatically
+	ID       string `gorm:"primaryKey"` // make sure this gets generated automatically
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
@@ -42,7 +44,21 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	hash, _ := HashPassword(u.Password)
 	u.Password = hash
 
+	// Generate user GUID
+	userGUID := uuid.New().String()
+	u.ID = userGUID
+
+	// Registed user in DB
 	DB.Create(&u)
+
+	// Create GCP bucket for user
+	bkt := Client.Bucket(userGUID)
+	if err := bkt.Create(r.Context(), GCPProjectID, nil); err != nil {
+		log.Println(err.Error())
+		w.Write([]byte("Unable to register user storage"))
+		w.WriteHeader(500)
+		return
+	}
 
 	w.Write([]byte("User created"))
 	w.WriteHeader(201)
