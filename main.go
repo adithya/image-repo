@@ -96,14 +96,14 @@ func main() {
 	mux.Handle("/user/", http.StripPrefix("/user", userService))
 
 	photoService := http.NewServeMux()
-	photoService.HandleFunc("/upload", Upload)
-	photoService.HandleFunc("/edit/permissions", ChangePermissions)
-	photoService.HandleFunc("/delete", Delete)
+	photoService.Handle("/upload", AuthenticateAndReturnUsername(http.HandlerFunc(Upload)))
+	photoService.Handle("/edit/permissions", AuthenticateAndReturnUsername(http.HandlerFunc(ChangePermissions)))
+	photoService.Handle("/delete", AuthenticateAndReturnUsername(http.HandlerFunc(Delete)))
 	mux.Handle("/photo/", http.StripPrefix("/photo", photoService))
 
 	feedService := http.NewServeMux()
-	feedService.HandleFunc("/public", GetFeed)  // public photos from all users
-	feedService.HandleFunc("/home", GetGallery) // all photos uploaded by user (public + private)
+	feedService.HandleFunc("/public", GetFeed)                                               // public photos from all users
+	feedService.Handle("/home", AuthenticateAndReturnUsername(http.HandlerFunc(GetGallery))) // all photos uploaded by user (public + private)
 	mux.Handle("/feed/", http.StripPrefix("/feed", feedService))
 
 	s := http.Server{
