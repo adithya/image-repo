@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 // Photo represents a photo that has been uploaded
@@ -30,6 +31,19 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	// Get isPublic attribute
+	IsPublicFromValue := r.FormValue("IsPublic")
+	if IsPublicFromValue == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	IsPublic, err := strconv.ParseBool(IsPublicFromValue)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	// Identify who the user is
 	username := r.Context().Value("username")
 	if username == nil {
@@ -50,7 +64,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 	// Register photo in photos table
 	photo := Photo{
 		ID:       photoID,
-		IsPublic: false, // ******* TODO: DONT HARDCODE GET FROM FORM *****
+		IsPublic: IsPublic,
 		UserID:   *bucketID,
 	}
 	DB.Create(&photo)
