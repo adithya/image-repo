@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"io"
@@ -8,10 +10,12 @@ import (
 	"strconv"
 )
 
+const PUBLIC_BUCKET_NAME = "shopify-image-repo_public"
+
 // Photo represents a photo that has been uploaded
 type Photo struct {
 	// Each photo has an unique ID, that allows us to identify it in the users bucket
-	ID string `json:"id" gorm:"primaryKey"`
+	ID string `json:"PhotoID" gorm:"primaryKey"`
 	// Each photo can either be public or private, and is private by default
 	IsPublic bool `json:"IsPublic" gorm:"default:false"`
 	// Each photo is owned by a valid user from the users table
@@ -90,7 +94,105 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 
 // ChangePermissions allows users to change the visibility of photo between public (everyone can see) and private (only you can see)
 func ChangePermissions(w http.ResponseWriter, r *http.Request) {
+	// Identify who the user is
+	username := r.Context().Value("username")
+	if username == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
+	// Get userid for user
+	userID, err := GetUserGUID(username.(string))
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Retrieve PhotoID and IsPublic from JSON request body
+	var requestedPhoto Photo
+	err = json.NewDecoder(r.Body).Decode(&requestedPhoto)
+	if err != nil {
+		w.Write([]byte("Missing PhotoID or IsPublic attribute"))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if requestedPhoto.ID == "" {
+		w.Write([]byte("PhotoID not provided in request body"))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// make sure photo exists
+	var photos []Photo
+	DB.Where(&Photo{ID: requestedPhoto.ID}).Find(&photos)
+
+	if len(photos) > 1 {
+		w.Write([]byte("Multiple photos returned"))
+		w.WriteHeader(http.StatusInternalServerError)
+
+	}
+
+	if len(photos) == 0 {
+		w.Write([]byte("No photos returned"))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	photo := photos[0]
+
+	// Make sure photo belongs to user
+	if photo.UserID != *userID {
+		w.Write([]byte("photo does not belong to user"))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// If permission has changed photo needs to be updated in photos tabe and object needs to be moved between buckets
+	if photo.IsPublic != requestedPhoto.IsPublic {
+		// If permission has gone from public to private
+		if photo.IsPublic == true && requestedPhoto.IsPublic == false {
+			err = moveBuckets(r.Context(), PUBLIC_BUCKET_NAME, *userID, photo.ID)
+			if err != nil {
+				w.Write([]byte(err.Error()))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// If permission has gone from private to public
+		if photo.IsPublic == false && requestedPhoto.IsPublic == true {
+			err = moveBuckets(r.Context(), *userID, PUBLIC_BUCKET_NAME, photo.ID)
+			if err != nil {
+				w.Write([]byte(err.Error()))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// change permission for photo in photos table
+		photo.IsPublic = requestedPhoto.IsPublic
+		DB.Save(&photo)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	return
+}
+
+func moveBuckets(ctx context.Context, srcBucketName string, dstBucketName string, objName string) error {
+	src := Client.Bucket(srcBucketName).Object(objName)
+	dst := Client.Bucket(dstBucketName).Object(objName)
+
+	if _, err := dst.CopierFrom(src).Run(ctx); err != nil {
+		return fmt.Errorf("Object(%q).CopierFrom(%q).Run: %v", objName, srcBucketName, err)
+	}
+
+	if err := src.Delete(ctx); err != nil {
+		return fmt.Errorf("Object(%q).Delete: %v", objName, err)
+	}
+
+	return nil
 }
 
 // Delete allows users to delete photos
