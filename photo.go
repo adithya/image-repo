@@ -74,7 +74,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 	DB.Create(&photo)
 
 	// Retrieve user's bucket
-	bkt := Client.Bucket(*bucketID)
+	bkt := Client.Bucket(getBucketForPhoto(photo))
 
 	// Upload photo to bucket
 	obj := bkt.Object(photoID)
@@ -197,5 +197,71 @@ func moveBuckets(ctx context.Context, srcBucketName string, dstBucketName string
 
 // Delete allows users to delete photos
 func Delete(w http.ResponseWriter, r *http.Request) {
+	// get user info
+	username := r.Context().Value("username")
+	if username == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
+	// retrieve photo id from api call
+	var requestedPhoto Photo
+	err := json.NewDecoder(r.Body).Decode(&requestedPhoto)
+	if err != nil {
+		w.Write([]byte("Missing PhotoID or IsPublic attribute"))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if requestedPhoto.ID == "" {
+		w.Write([]byte("PhotoID not provided in request body"))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// make sure photo exists
+	var photos []Photo
+	DB.Where(&Photo{ID: requestedPhoto.ID}).Find(&photos)
+
+	if len(photos) > 1 {
+		w.Write([]byte("Multiple photos returned"))
+		w.WriteHeader(http.StatusInternalServerError)
+
+	}
+
+	if len(photos) == 0 {
+		w.Write([]byte("No photos returned"))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	photo := photos[0]
+
+	// Make sure photo belongs to user
+	userID, err := GetUserGUID(username.(string))
+	if photo.UserID != *userID {
+		w.Write([]byte("photo does not belong to user"))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// delete photo from photos table
+	DB.Delete(&photo)
+
+	// delete file from bucket
+	imageFile := Client.Bucket(getBucketForPhoto(photo)).Object(photo.ID)
+	if err = imageFile.Delete(r.Context()); err != nil {
+		err = fmt.Errorf("Object(%q).Delete: %v", photo.ID, err)
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func getBucketForPhoto(photo Photo) string {
+	if photo.IsPublic {
+		return PUBLIC_BUCKET_NAME
+	}
+
+	return photo.UserID
 }
