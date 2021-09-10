@@ -89,6 +89,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Write([]byte(photoID))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -176,6 +177,7 @@ func ChangePermissions(w http.ResponseWriter, r *http.Request) {
 		DB.Save(&photo)
 	}
 
+	w.Write([]byte("photo visibility has been changed"))
 	w.WriteHeader(http.StatusOK)
 	return
 }
@@ -256,6 +258,9 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	w.Write([]byte("photo deleted"))
+	w.WriteHeader(http.StatusOK)
 }
 
 func getBucketForPhoto(photo Photo) string {
