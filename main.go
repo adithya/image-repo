@@ -4,7 +4,6 @@ import (
 	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"google.golang.org/api/option"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -23,41 +22,6 @@ var Client *storage.Client
 
 // GCPProjectID is the project ID withing GCP, should be passed wherever a project ID is needed as an argument
 const GCPProjectID = "shopify-challenge-image-repo"
-
-func Welcome(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("token")
-	if err != nil {
-		if err == http.ErrNoCookie {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	tknStr := c.Value
-
-	claims := &Claims{}
-
-	tkn, err := jwt.ParseWithClaims(tknStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
-	if err != nil {
-		if err == jwt.ErrSignatureInvalid {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if !tkn.Valid {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	w.Write([]byte(fmt.Sprintf("Welcome %s!", claims.Username)))
-}
 
 func main() {
 	var err error
@@ -85,8 +49,6 @@ func main() {
 	mux.HandleFunc("/GetVersion", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("0.1\n"))
 	})
-
-	mux.HandleFunc("/welcome", Welcome)
 
 	userService := http.NewServeMux()
 	userService.HandleFunc("/signup", Signup)
