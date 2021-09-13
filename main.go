@@ -7,12 +7,15 @@ import (
 	"google.golang.org/api/option"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
 )
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
+
+var GCPPkey []byte
 
 // DB is the global connection pool for the database connection
 var DB *gorm.DB
@@ -33,6 +36,9 @@ func main() {
 	if err != nil {
 		panic("failed to connect database")
 	}
+
+	// Load GCP private key
+	GCPPkey, err = ioutil.ReadFile("gcp-private-key.pem")
 
 	// Migrate the schema
 	DB.AutoMigrate(&User{})
