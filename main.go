@@ -67,6 +67,7 @@ func main() {
 	photoService.Handle("/upload", AuthenticateAndReturnUsername(http.HandlerFunc(Upload)))
 	photoService.Handle("/edit/permissions", AuthenticateAndReturnUsername(http.HandlerFunc(ChangePermissions)))
 	photoService.Handle("/delete", AuthenticateAndReturnUsername(http.HandlerFunc(Delete)))
+	photoService.Handle("/details", DetermineIfAuthenticated(http.HandlerFunc(GetPhotoDetails)))
 	mux.Handle("/photo/", http.StripPrefix("/photo", photoService))
 
 	feedService := http.NewServeMux()

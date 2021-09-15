@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cloud.google.com/go/storage"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,19 +9,123 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 const PUBLIC_BUCKET_NAME = "shopify-image-repo_public"
 
 // Photo represents a photo that has been uploaded
 type Photo struct {
-	// Each photo has an unique ID, that allows us to identify it in the users bucket
+	// Each photo has an unique ID
 	ID string `json:"PhotoID" gorm:"primaryKey"`
 	// Each photo can either be public or private, and is private by default
 	IsPublic bool `json:"IsPublic" gorm:"default:false"`
 	// Each photo is owned by a valid user from the users table
-	UserID string `json:"UserId"`
-	User   User
+	UserID string `json:"-"`
+	User   User   `json:"-"`
+	// For client side use
+	ImageURL         string `json:"ImageURL" gorm:"-"`
+	Username         string `json:"Username" gorm:"-"`
+	IsOwnedByAPIUser bool   `json:"IsOwnedByAPIUser" gorm:"-"`
+}
+
+// GetPhotoDetails returns
+func GetPhotoDetails(w http.ResponseWriter, r *http.Request) {
+	// Determine the photo the user is requesting details of
+	var requestedPhoto Photo
+	err := json.NewDecoder(r.Body).Decode(&requestedPhoto)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Malformded json"))
+		return
+	}
+
+	// Retrieve photo
+	var photo Photo
+	DB.Where(&Photo{ID: requestedPhoto.ID}).First(&photo)
+	if photo.ID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("photo with id not found"))
+		return
+	}
+
+	// Determine if the user is authenticated
+	IsAuthenticated := r.Context().Value("IsAuthenticated").(bool)
+
+	// If authenticated get username/id
+	var username string
+	var userID *string
+	IsOwnedByAPIUser := false // Determine if user requesting image owns photo
+	if IsAuthenticated {
+		username = r.Context().Value("username").(string)
+		userID, err = GetUserGUID(username)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(""))
+		}
+
+		if photo.UserID == *userID {
+			IsOwnedByAPIUser = true
+		}
+	}
+
+	// Fill in some values for use by client side
+	photo.Username = GetUsernameForUser(photo.UserID)
+	photo.IsOwnedByAPIUser = IsOwnedByAPIUser
+
+	if photo.IsPublic /* can return image regardless of who is requesting */ {
+		url, err := storage.SignedURL(PUBLIC_BUCKET_NAME, photo.ID, &storage.SignedURLOptions{
+			GoogleAccessID: "cloud-storage-user@shopify-challenge-image-repo.iam.gserviceaccount.com",
+			PrivateKey:     GCPPkey,
+			Method:         "GET",
+			Expires:        time.Now().Add(5 * time.Hour),
+		})
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+		}
+
+		photo.ImageURL = url
+
+		photoItem, err := json.Marshal(photo)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(photoItem)
+	} else /* need to verify owner is requesting image */ {
+		if IsOwnedByAPIUser {
+			url, err := storage.SignedURL(getBucketForPhoto(photo), photo.ID, &storage.SignedURLOptions{
+				GoogleAccessID: "cloud-storage-user@shopify-challenge-image-repo.iam.gserviceaccount.com",
+				PrivateKey:     GCPPkey,
+				Method:         "GET",
+				Expires:        time.Now().Add(5 * time.Hour),
+			})
+
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+			}
+
+			photo.ImageURL = url
+
+			photoItem, err := json.Marshal(photo)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(photoItem)
+		}
+	}
+
+	w.WriteHeader(http.StatusBadRequest)
 }
 
 // Upload allows users to upload photos, they may be marked as public or private

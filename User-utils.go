@@ -14,6 +14,39 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
+func DetermineIfAuthenticated(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("token")
+		if err != nil {
+			r = r.WithContext(context.WithValue(r.Context(), "IsAuthenticated", false))
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		tknStr := c.Value
+
+		claims := &Claims{}
+
+		tkn, err := jwt.ParseWithClaims(tknStr, claims, func(token *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+		if err != nil {
+			r = r.WithContext(context.WithValue(r.Context(), "IsAuthenticated", false))
+			next.ServeHTTP(w, r)
+			return
+		}
+		if !tkn.Valid {
+			r = r.WithContext(context.WithValue(r.Context(), "IsAuthenticated", false))
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		r = r.WithContext(context.WithValue(r.Context(), "IsAuthenticated", true))
+		r = r.WithContext(context.WithValue(r.Context(), "username", claims.Username))
+		next.ServeHTTP(w, r)
+	})
+}
+
 func AuthenticateAndReturnUsername(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("token")
@@ -99,6 +132,12 @@ func SearchForExistingUser(username string) (*[]User, error) {
 	}
 
 	return &users, nil
+}
+
+func GetUsernameForUser(userID string) string {
+	var user User
+	DB.Where(&User{ID: userID}).First(&user)
+	return user.Username
 }
 
 func UserExists(users *[]User) bool {
