@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// Load GCP private key
-	GCPPkey, err = ioutil.ReadFile("gcp-private-key.pem")
+	GCPPkey = GetPrivateKeyFromGCPCredentialsFile("gcp-service-acc-creds.json")
 
 	// Migrate the schema
 	DB.AutoMigrate(&User{})
