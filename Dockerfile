@@ -8,6 +8,7 @@ RUN go mod download
 
 COPY *.go ./
 COPY gcp-service-acc-creds.json ./
+COPY gcp-private-key.pem ./
 RUN go build -o /shopify-challenge
 
 EXPOSE 8080
