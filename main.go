@@ -7,7 +7,6 @@ import (
 	"google.golang.org/api/option"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
