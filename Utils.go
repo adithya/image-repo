@@ -1,9 +1,11 @@
 package main
 
 import (
+	"cloud.google.com/go/storage"
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 type gcpCreds struct {
@@ -37,4 +39,20 @@ func GetPrivateKeyFromGCPCredentialsFile(filename string) []byte {
 	}
 
 	return []byte(creds.PrivateKey)
+}
+
+// GetURLForImage retrieves the url for the image requested
+// If running locally with IsDebug set to true, it will return a normal bucket URL as SignedURLs are difficult to make work with Google Cloud Storage Emulator
+// If running in production with IsDebug set to false, SignedURLs will be returned with a 5 hour expiry
+func GetURLForImage(photo Photo) (string, error) {
+	if IsDebug {
+		return "http://localhost:4443/" + getBucketForPhoto(photo) + "/" + photo.ID, nil
+	}
+
+	return storage.SignedURL(getBucketForPhoto(photo), photo.ID, &storage.SignedURLOptions{
+		GoogleAccessID: "cloud-storage-user@shopify-challenge-image-repo.iam.gserviceaccount.com",
+		PrivateKey:     GCPPkey,
+		Method:         "GET",
+		Expires:        time.Now().Add(5 * time.Hour),
+	})
 }
