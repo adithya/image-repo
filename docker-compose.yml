@@ -18,6 +18,21 @@ services:
             timeout: 5s
             retries: 5
 
+    cloudstorage:
+        image: fsouza/fake-gcs-server
+        tty: true
+        stdin_open: true
+        privileged: true
+        security_opt:
+            - seccomp:unconfined
+        volumes:
+            - ./gcs-example-base:/data
+            - ./cloudstorage:/storage
+        ports:
+            - "4443:4443"
+        command: -scheme http --public-host localhost:4443
+        # test availability curl http://localhost:4443/storage/v1/b
+
     web:
         build: .
         ports:
