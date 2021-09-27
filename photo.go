@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 const PUBLIC_BUCKET_NAME = "shopify-image-repo_public"
@@ -74,12 +73,7 @@ func GetPhotoDetails(w http.ResponseWriter, r *http.Request) {
 	photo.IsOwnedByAPIUser = IsOwnedByAPIUser
 
 	if photo.IsPublic /* can return image regardless of who is requesting */ {
-		url, err := storage.SignedURL(PUBLIC_BUCKET_NAME, photo.ID, &storage.SignedURLOptions{
-			GoogleAccessID: "cloud-storage-user@shopify-challenge-image-repo.iam.gserviceaccount.com",
-			PrivateKey:     GCPPkey,
-			Method:         "GET",
-			Expires:        time.Now().Add(5 * time.Hour),
-		})
+		url, err := GetURLForImage(photo)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -99,12 +93,7 @@ func GetPhotoDetails(w http.ResponseWriter, r *http.Request) {
 		w.Write(photoItem)
 	} else /* need to verify owner is requesting image */ {
 		if IsOwnedByAPIUser {
-			url, err := storage.SignedURL(getBucketForPhoto(photo), photo.ID, &storage.SignedURLOptions{
-				GoogleAccessID: "cloud-storage-user@shopify-challenge-image-repo.iam.gserviceaccount.com",
-				PrivateKey:     GCPPkey,
-				Method:         "GET",
-				Expires:        time.Now().Add(5 * time.Hour),
-			})
+			url, err := GetURLForImage(photo)
 
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)

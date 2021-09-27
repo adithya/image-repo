@@ -1,10 +1,8 @@
 package main
 
 import (
-	"cloud.google.com/go/storage"
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
 // FeedItem regardless of source
@@ -30,12 +28,7 @@ func GetFeed(w http.ResponseWriter, r *http.Request) {
 	// Loop through photos array
 	for _, photo := range photos {
 		// Get url for each object in photos array
-		url, err := storage.SignedURL(PUBLIC_BUCKET_NAME, photo.ID, &storage.SignedURLOptions{
-			GoogleAccessID: "cloud-storage-user@shopify-challenge-image-repo.iam.gserviceaccount.com",
-			PrivateKey:     GCPPkey,
-			Method:         "GET",
-			Expires:        time.Now().Add(5 * time.Hour),
-		})
+		url, err := GetURLForImage(photo)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -88,12 +81,7 @@ func GetGallery(w http.ResponseWriter, r *http.Request) {
 	// Loop through photos array
 	for _, photo := range photos {
 		// Get url for each object in photos array
-		url, err := storage.SignedURL(getBucketForPhoto(photo), photo.ID, &storage.SignedURLOptions{
-			GoogleAccessID: "cloud-storage-user@shopify-challenge-image-repo.iam.gserviceaccount.com",
-			PrivateKey:     GCPPkey,
-			Method:         "GET",
-			Expires:        time.Now().Add(5 * time.Hour),
-		})
+		url, err := GetURLForImage(photo)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
