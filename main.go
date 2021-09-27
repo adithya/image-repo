@@ -59,7 +59,23 @@ func main() {
 		Client, err = storage.NewClient(ctx, option.WithCredentialsFile("gcp-service-acc-creds.json"))
 	}
 	if err != nil {
-		panic(err.Error())
+		panic(err)
+	}
+
+	// Make sure public bucket exists and create it if it doesn't
+	// Only run in production as Google Cloud Storage emulator for local development does not support metadata retrieval
+	// TODO: Setup terraform to handle settin up prod environment from scratch
+	if !IsDebug {
+		_, err = Client.Bucket(PUBLIC_BUCKET_NAME).Attrs(ctx)
+		if err == storage.ErrBucketNotExist {
+			bkt := Client.Bucket(PUBLIC_BUCKET_NAME)
+			if err = bkt.Create(ctx, GCPProjectID, nil); err != nil {
+				panic(err)
+			}
+		}
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	mux := http.NewServeMux()
