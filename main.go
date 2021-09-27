@@ -51,7 +51,9 @@ func main() {
 	}
 
 	// Load GCP private key
-	GCPPkey = GetPrivateKeyFromGCPCredentialsFile("gcp-service-acc-creds.json")
+	if !IsDebug {
+		GCPPkey = GetPrivateKeyFromGCPCredentialsFile("gcp-service-acc-creds.json")
+	}
 
 	// Migrate the schema
 	DB.AutoMigrate(&User{})

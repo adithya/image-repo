@@ -7,7 +7,7 @@ COPY go.sum ./
 RUN go mod download
 
 COPY *.go ./
-COPY gcp-service-acc-creds.json ./
+COPY Dockerfile gcp-service-acc-creds.json* ./
 RUN go build -o /shopify-challenge
 
 EXPOSE 8080
