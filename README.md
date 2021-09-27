@@ -15,10 +15,9 @@ Image Repo is a self-contained image repository that contains the following feat
 
 ### Required Dependecies:
 - Docker
-- Google Cloud Platform Account
 - Git
 
-### Setup
+### Development Setup
 
 1. Clone the project
 
@@ -26,24 +25,29 @@ Image Repo is a self-contained image repository that contains the following feat
 git clone https://github.com/adithya/image-repo
 ```
 
-Before running the application two files need to be setup:
+Before running the application an .env file needs to be created at the root of the project directory:
 
-2. First a .env file needs to be created, this file will contain the following:
+2. This file will contain the following:
    1. Credentials for a postgressql user
    2. An HS256 JWT secret
+   3. An IS_DEBUG atttribute set to "true"
+   4. A POSTGRES_DB attribute set to "shopify-challenge-db"
+   5. A PGADMIN_LIST_PORT attribute set to "5432"
+   6. A CLOUD_STORAGE_HOST attribute set to "localhost"
 
-The file will look something like this:
+Here is a sample of how the .env file should look:
 ```
-POSTGRES_USER={username}
-POSTGRES_PASSWORD={password}
-JWT_SECRET={secret}
+POSTGRES_HOST=localhost
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=secret
+JWT_SECRET=UwaLXj%nGl:wR0f4]:F1[H;f(}5ent/Zit{Nc7SCnhg%aZpl9qdoqlFH}Q}(5kG
+IS_DEBUG=true
+POSTGRES_DB=shopify-challenge-db
+PGADMIN_LISTEN_PORT=5432
+CLOUD_STORAGE_HOST=localhost
 ```
 
 You can generate a JWT secret [here](https://www.grc.com/passwords.htm).
-
-3. A Google Cloud Platform service account needs to be created, and the JSON key file for that service account needs to be downloaded. Instructions on how do do that can be found [here](https://cloud.google.com/docs/authentication/production#create_service_account).
-
-Both files need to be located at the root of the project directory.
 
 ### Getting Started
 
@@ -63,6 +67,7 @@ By default the services can be found at the following URLs:
 - The web server will be available on http://localhost:8080
 - pgadmin will be available on http://localhost:80
 - postgres will be available on http://localhost:5432
+- A locally running [emulator of Google Cloud Storage](https://github.com/fsouza/fake-gcs-server) will be running on http://localhost:4443
 
 ## Secure storage and retrieval of images
 
