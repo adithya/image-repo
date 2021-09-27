@@ -53,7 +53,11 @@ func main() {
 
 	// Connect to Google Cloud SDK
 	ctx := context.Background()
-	Client, err = storage.NewClient(ctx, option.WithCredentialsFile("gcp-service-acc-creds.json"))
+	if IsDebug {
+		Client, err = storage.NewClient(context.TODO(), option.WithoutAuthentication(), option.WithEndpoint(fmt.Sprintf("http://%s:4443/storage/v1/", os.Getenv("CLOUD_STORAGE_HOST"))))
+	} else {
+		Client, err = storage.NewClient(ctx, option.WithCredentialsFile("gcp-service-acc-creds.json"))
+	}
 	if err != nil {
 		panic(err.Error())
 	}
