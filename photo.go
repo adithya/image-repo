@@ -170,6 +170,18 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 	// Retrieve user's bucket
 	bkt := Client.Bucket(getBucketForPhoto(photo))
 
+	// Verify existence of bucket
+	// Only run in production as Google Cloud Storage emulator for local development does not support metadata retrieval
+	// TODO: Need more robust diaster recovery
+	if !IsDebug {
+		_, err = Client.Bucket(getBucketForPhoto(photo)).Attrs(r.Context())
+		if err == storage.ErrBucketNotExist {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Bucket does not exist: " + err.Error()))
+			return
+		}
+	}
+
 	// Upload photo to bucket
 	obj := bkt.Object(photoID)
 	objWriter := obj.NewWriter(r.Context())
