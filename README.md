@@ -69,6 +69,10 @@ By default the services can be found at the following URLs:
 - postgres will be available on http://localhost:5432
 - A locally running [emulator of Google Cloud Storage](https://github.com/fsouza/fake-gcs-server) will be running on http://localhost:4443
 
+## API Docs
+
+API documentation for image-repo can be found in the [repositories wiki](https://github.com/adithya/image-repo/wiki/API-Reference-Home).
+
 ## Secure storage and retrieval of images
 
 ### Overview
@@ -84,8 +88,5 @@ In an image repository with both public and private access, as well as support f
 
 - While Signed URLs with a timed expiry is good, in reality this technique has drawback, access to the URL is abritrary. If the URL is stolen or shared, and the URL is still within its expiry window, access to a private image could occur. Obviously this is less than ideal, in order to solve this problem a CDN like Google Cloud CDN needs to be used, as it supports [signed URLs and signed cookies](https://cloud.google.com/cdn/docs/private-content), ensuring only those clients that have the signed cookie (in our case the specific user) can have access to the content.
 
-## API Docs
-
-API documentation for image-repo can be found in the repositories wiki.
 
 
