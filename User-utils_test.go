@@ -6,20 +6,10 @@ import (
 
 func TestHashPassword(t *testing.T) {
 	password := "password"
-	password2 := "password"
 
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	hashedPassword2, err := HashPassword(password2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if hashedPassword == hashedPassword2 {
-		t.Fatalf("Hash is coliding easily")
 	}
 
 	if password == hashedPassword {
