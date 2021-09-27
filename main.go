@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -22,6 +23,8 @@ var DB *gorm.DB
 // Client is the global connection pool for the GCP SDK
 var Client *storage.Client
 
+var IsDebug bool
+
 // GCPProjectID is the project ID withing GCP, should be passed wherever a project ID is needed as an argument
 const GCPProjectID = "shopify-challenge-image-repo"
 
@@ -34,6 +37,11 @@ func main() {
 
 	if err != nil {
 		panic("failed to connect database")
+	}
+
+	IsDebug, err = strconv.ParseBool(os.Getenv("IS_DEBUG"))
+	if err != nil {
+		panic("IS_DEBUG in .env must either be \"true\" or \"false\"")
 	}
 
 	// Load GCP private key
