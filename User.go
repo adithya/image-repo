@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"log"
@@ -53,7 +54,9 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 
 	// Create GCP bucket for user
 	bkt := Client.Bucket(userGUID)
-	if err := bkt.Create(r.Context(), GCPProjectID, nil); err != nil {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	if err := bkt.Create(ctx, GCPProjectID, nil); err != nil {
 		log.Println(err.Error())
 		w.Write([]byte("Unable to register user storage"))
 		w.WriteHeader(500)
