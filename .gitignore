@@ -1,3 +1,5 @@
 *.pem
 .env
+pgadmin/
+cloudstorage/
 gcp-service-acc-creds.json
