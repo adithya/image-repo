@@ -3,6 +3,7 @@ package main
 import (
 	"cloud.google.com/go/storage"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"os"
 	"time"
@@ -29,6 +30,10 @@ func GetPrivateKeyFromGCPCredentialsFile(filename string) []byte {
 	}
 	defer credsFile.Close()
 
+	return parsePrivateKey(credsFile)
+}
+
+func parsePrivateKey(credsFile io.Reader) []byte {
 	credsFileRaw, _ := ioutil.ReadAll(credsFile)
 
 	var creds gcpCreds
@@ -46,9 +51,17 @@ func GetPrivateKeyFromGCPCredentialsFile(filename string) []byte {
 // If running in production with IsDebug set to false, SignedURLs will be returned with a 5 hour expiry
 func GetURLForImage(photo Photo) (string, error) {
 	if IsDebug {
-		return "http://localhost:4443/" + getBucketForPhoto(photo) + "/" + photo.ID, nil
+		return getBucketURLForImage(photo)
 	}
 
+	return getSignedURLForImage(photo)
+}
+
+func getBucketURLForImage(photo Photo) (string, error) {
+	return "http://localhost:4443/" + getBucketForPhoto(photo) + "/" + photo.ID, nil
+}
+
+func getSignedURLForImage(photo Photo) (string, error) {
 	return storage.SignedURL(getBucketForPhoto(photo), photo.ID, &storage.SignedURLOptions{
 		GoogleAccessID: "cloud-storage-user@shopify-challenge-image-repo.iam.gserviceaccount.com",
 		PrivateKey:     GCPPkey,
